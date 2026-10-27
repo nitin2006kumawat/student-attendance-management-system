@@ -1,0 +1,12 @@
+{% extends "base.html" %}{% block content %}
+<h1>Settings</h1><p class="sub">Configure how attendance is calculated.</p><div id="rule" class="rule"></div>
+<div class="grid g2"><form class="card" id="sf"><h2>Attendance rules</h2><label>Attendance threshold (%)</label><input type="number" name="threshold" min="0" max="100" step="0.5" style="width:100%">
+<label>Leave handling</label><select name="leave_mode" style="width:100%"><option value="exclude">Exclude Leave from the calculation (default)</option><option value="present">Count Leave as Present</option><option value="absent">Count Leave as Absent</option></select>
+<div class="err" id="fe"></div><div class="acts"><button class="btn">Save settings</button></div></form>
+<div class="card"><h2>Demo data</h2><p class="sub">Loads 12 fictional students, 5 subjects and about 1,200 attendance records into an empty database. It never replaces existing records.</p><button class="btn ghost" id="seed">Load demo data</button>
+<h2 style="margin-top:26px">About</h2><p class="sub" style="margin:0">Student Attendance Management System v1.0<br>Flask · SQLite · Pandas · NumPy · Chart.js<br>BCA Final Year Project</p></div></div>
+{% endblock %}{% block scripts %}<script>
+const sf=$('#sf');api('/api/settings').then(s=>{sf.threshold.value=s.threshold;sf.leave_mode.value=s.leave_mode}).catch(e=>toast(e.message,1));
+sf.onsubmit=async e=>{e.preventDefault();$('#fe').textContent='';try{await api('/api/settings',{method:'PUT',body:{threshold:sf.threshold.value,leave_mode:sf.leave_mode.value}});toast('Settings saved');loadRule()}catch(x){$('#fe').textContent=x.message}};
+$('#seed').onclick=async()=>{try{await api('/api/seed',{method:'POST',body:{}});toast('Demo data loaded');topbar()}catch(x){toast(x.message,1)}};
+</script>{% endblock %}

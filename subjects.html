@@ -1,0 +1,18 @@
+{% extends "base.html" %}{% block content %}
+<h1>Subject Management</h1><p class="sub">Subjects are assigned to attendance records.</p>
+<div class="bar"><span class="sp"></span><button class="btn" id="add">＋ Add subject</button></div>
+<div class="card tw"><table><thead><tr><th>Subject</th><th>Code</th><th>Records</th><th></th></tr></thead><tbody id="rows"></tbody></table></div>
+<div class="ov" id="m"><form class="card md" id="sf" novalidate><h2 id="mt"></h2><label>Subject name</label><input name="name" style="width:100%"><label>Code (optional)</label><input name="code" style="width:100%">
+<div class="err" id="fe"></div><div class="acts"><button type="button" class="btn ghost" data-close="m">Cancel</button><button class="btn">Save</button></div></form></div>
+{% endblock %}{% block scripts %}<script>
+let list=[],eid=null;const tb=$('#rows'),sf=$('#sf');
+async function load(){loadingRows(tb,4);try{list=await api('/api/subjects');
+tb.innerHTML=list.map(s=>`<tr><td>${esc(s.name)}</td><td>${esc(s.code)}</td><td>${s.records}</td><td><button class="btn ghost sm" data-a="e" data-id="${s.id}">Edit</button><button class="btn red sm" data-a="d" data-id="${s.id}">Delete</button></td></tr>`).join('')||emptyRow(4,'No subjects yet')}catch(e){tb.innerHTML=emptyRow(4,esc(e.message))}}
+$('#add').onclick=()=>{eid=null;sf.reset();$('#fe').textContent='';$('#mt').textContent='Add subject';openModal('m')};
+tb.onclick=async e=>{const b=e.target.closest('button');if(!b)return;const s=list.find(x=>x.id==b.dataset.id);if(!s)return;
+ if(b.dataset.a=='e'){eid=s.id;sf.name.value=s.name;sf.code.value=s.code;$('#fe').textContent='';$('#mt').textContent='Edit subject';openModal('m')}
+ if(b.dataset.a=='d'&&await confirmDialog(`Delete “${s.name}”? ${s.records} attendance record(s) will also be deleted.`)){try{await api('/api/subjects/'+s.id,{method:'DELETE'});toast('Subject deleted');load()}catch(x){toast(x.message,1)}}};
+sf.onsubmit=async e=>{e.preventDefault();const d=Object.fromEntries(new FormData(sf));if(!d.name.trim())return $('#fe').textContent='Subject name is required';
+ try{await api(eid?'/api/subjects/'+eid:'/api/subjects',{method:eid?'PUT':'POST',body:d});closeModal('m');toast('Subject saved');load()}catch(x){$('#fe').textContent=x.message}};
+load();
+</script>{% endblock %}

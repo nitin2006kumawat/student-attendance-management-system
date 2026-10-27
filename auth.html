@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <title>{{ 'Create administrator' if mode == 'setup' else 'Sign in' }} · Student Attendance System</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="auth-page">
+  <main class="card auth-card">
+    <div class="brand"><div class="logo"><span>✓</span></div>Attendance Management</div>
+    {% if mode == 'setup' %}
+      <h1>Create administrator</h1>
+      <p class="sub">Create the first account to protect this attendance database. This setup page is available only on this computer.</p>
+    {% else %}
+      <h1>Welcome back</h1>
+      <p class="sub">Sign in to manage students and attendance.</p>
+    {% endif %}
+    {% if error %}<p class="auth-error" role="alert">{{ error }}</p>{% endif %}
+    <form method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label for="username">Username</label>
+      <input id="username" name="username" required minlength="3" autocomplete="username" autofocus>
+      <label for="password">Password</label>
+      <input id="password" name="password" type="password" required {% if mode == 'setup' %}minlength="12"{% endif %} autocomplete="{{ 'new-password' if mode == 'setup' else 'current-password' }}">
+      {% if mode == 'setup' %}<small class="auth-help">Use at least 12 characters. Store it safely; password recovery is not configured.</small>{% endif %}
+      <button class="btn auth-submit" type="submit">{{ 'Create account' if mode == 'setup' else 'Sign in' }}</button>
+    </form>
+  </main>
+</body>
+</html>

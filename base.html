@@ -1,0 +1,31 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{% block title %}{{ active|capitalize }}{% endblock %} · Student Attendance System</title>
+<meta name="csrf-token" content="{{ csrf_token() }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"></head><body>
+{% set icons = {
+ 'home':'<path d="M3 11l9-8 9 8v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/>',
+ 'users':'<circle cx="9" cy="8" r="4"/><path d="M2 21c0-4 3-7 7-7s7 3 7 7M17 4a4 4 0 0 1 0 8M22 21c0-3-2-5-4-6"/>',
+ 'check':'<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>',
+ 'book':'<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5zM4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"/>',
+ 'chart':'<path d="M3 3v18h18M7 15l4-4 3 3 5-6"/>',
+ 'file':'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M8 13h8M8 17h8"/>',
+ 'gear':'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9L7 7M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/>',
+ 'bell':'<path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M10 21h4"/>'} %}
+{% macro ico(n) %}<svg class="i" viewBox="0 0 24 24">{{ icons[n]|safe }}</svg>{% endmacro %}
+<aside class="side" id="side"><div class="brand"><div class="logo">{{ ico('check') }}</div>Attendance<br>Management</div><nav>
+{% for k,l,i,u in [('index','Dashboard','home','/'),('students','Students','users','/students'),('attendance','Attendance','check','/attendance'),('subjects','Subjects','book','/subjects'),('analytics','Analytics','chart','/analytics'),('reports','Reports','file','/reports'),('settings','Settings','gear','/settings')] %}
+<a href="{{u}}" class="{{ 'on' if active==k }}">{{ ico(i) }}{{l}}</a>{% endfor %}</nav></aside>
+<div class="main"><header class="top">
+<button class="btn ghost menu" id="menu" aria-label="Menu">☰</button>
+<form action="/students"><input name="q" placeholder="Search students by name, ID or roll no…" aria-label="Search students by name, ID or roll number" autocomplete="off"></form>
+<span class="date" id="today"></span>
+<div class="bell"><button class="btn ghost" id="bell" aria-label="Notifications">{{ ico('bell') }}</button><span class="dot" id="dot" hidden></span>
+<div class="drop" id="drop"><p>Students below attendance threshold</p><span id="alerts"></span></div></div>
+<div class="me"><div class="av">{{ admin_username[:1]|upper or 'A' }}</div><span>{{ admin_username }}</span>
+<form method="post" action="/logout"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn ghost sm" type="submit">Sign out</button></form></div></header>
+<main class="page">{% block content %}{% endblock %}</main></div>
+<div class="ov" id="confirm"><div class="card md"><h2>Please confirm</h2><p id="cmsg" class="sub"></p><div class="acts"><button class="btn ghost" id="cno">Cancel</button><button class="btn red" id="cyes">Confirm</button></div></div></div>
+<div id="toasts"></div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+{% block scripts %}{% endblock %}</body></html>

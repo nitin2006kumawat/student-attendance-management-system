@@ -1,0 +1,43 @@
+{% extends "base.html" %}{% block content %}
+<h1>Attendance Management</h1><p class="sub">Mark, search and correct attendance. One entry per student, subject and date.</p>
+<div class="bar" id="f"><input name="q" placeholder="Search student…" aria-label="Search student">
+<select name="student" aria-label="Filter by student" data-src="/api/students" data-label="name" data-ph="All students"></select><select name="subject" aria-label="Filter by subject" data-src="/api/subjects" data-label="name" data-ph="All subjects"></select>
+<select name="status" aria-label="Filter by status"><option value="">All statuses</option><option>Present</option><option>Absent</option><option>Leave</option></select>
+<input type="date" name="start" title="From" aria-label="Start date"><input type="date" name="end" title="To" aria-label="End date"><span class="sp"></span><button class="btn ghost" id="bulk">Mark class</button><button class="btn" id="add">＋ Mark attendance</button></div>
+<div class="card tw"><table><thead><tr><th>Date</th><th>Student</th><th>Subject</th><th>Status</th><th></th></tr></thead><tbody id="rows"></tbody></table><p class="sub" id="cnt" style="margin:12px 0 0"></p></div>
+<div class="ov" id="m"><form class="card md" id="sf" novalidate><h2 id="mt"></h2>
+<label>Student</label><select name="student_id" data-src="/api/students" data-label="name" data-extra="student_id" data-ph="Select student" style="width:100%"></select>
+<label>Subject</label><select name="subject_id" data-src="/api/subjects" data-label="name" data-ph="Select subject" style="width:100%"></select>
+<label>Date</label><input type="date" name="date" style="width:100%"><label>Status</label>
+<select name="status" style="width:100%"><option value="">Select status</option><option>Present</option><option>Absent</option><option>Leave</option></select>
+<div class="err" id="fe"></div><div class="acts"><button type="button" class="btn ghost" data-close="m">Cancel</button><button class="btn">Save</button></div></form></div>
+<div class="ov" id="bm"><form class="card md" id="bf" novalidate><h2>Mark attendance for a class</h2>
+<label for="bulk-course">Course</label><select id="bulk-course" name="course" data-src="/api/meta" data-key="courses" data-ph="Select course" style="width:100%"></select>
+<label for="bulk-section">Section</label><select id="bulk-section" name="section" data-src="/api/meta" data-key="sections" data-ph="Select section" style="width:100%"></select>
+<label for="bulk-subject">Subject</label><select id="bulk-subject" name="subject_id" data-src="/api/subjects" data-label="name" data-ph="Select subject" style="width:100%"></select>
+<label for="bulk-date">Date</label><input id="bulk-date" type="date" name="date" style="width:100%">
+<label for="bulk-status">Status for every student in this class</label><select id="bulk-status" name="status" style="width:100%"><option value="">Select status</option><option>Present</option><option>Absent</option><option>Leave</option></select>
+<p class="sub">Existing records for this class, subject and date will be updated.</p><div class="err" id="be"></div>
+<div class="acts"><button type="button" class="btn ghost" data-close="bm">Cancel</button><button class="btn">Save class attendance</button></div></form></div>
+{% endblock %}{% block scripts %}<script>
+let list=[],eid=null;const tb=$('#rows'),sf=$('#sf'),LIM=300;
+async function load(){loadingRows(tb,5);try{list=await api('/api/attendance?'+filters('#f'));
+tb.innerHTML=list.slice(0,LIM).map(r=>`<tr><td>${r.date}</td><td>${esc(r.name)}<br><small class="sub">${esc(r.student_id)}</small></td><td>${esc(r.subject)}</td><td>${badge(r.status)}</td>
+<td><button class="btn ghost sm" data-a="e" data-id="${r.id}">Edit</button><button class="btn red sm" data-a="d" data-id="${r.id}">Delete</button></td></tr>`).join('')||emptyRow(5,'No attendance records match your filters');
+$('#cnt').textContent=list.length>LIM?`Showing ${LIM} of ${list.length} records — narrow the filters or use Reports to see all.`:`${list.length} record(s)`}catch(e){tb.innerHTML=emptyRow(5,esc(e.message))}}
+const today=()=>new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,10);
+const refresh=debounce(load);$('#f').addEventListener('input',refresh);$('#f').addEventListener('change',refresh);
+$('#add').onclick=()=>{eid=null;sf.reset();sf.date.value=today();$('#fe').textContent='';$('#mt').textContent='Mark attendance';openModal('m')};
+const bf=$('#bf');
+$('#bulk').onclick=()=>{bf.reset();bf.date.value=today();$('#be').textContent='';openModal('bm')};
+bf.onsubmit=async e=>{e.preventDefault();const d=Object.fromEntries(new FormData(bf));
+ if(Object.values(d).some(v=>!v))return $('#be').textContent='Course, section, subject, date and status are required';
+ try{const result=await api('/api/attendance/bulk',{method:'POST',body:d});closeModal('bm');toast(`Saved ${result.total} records (${result.created} new, ${result.updated} updated)`);load()}catch(x){$('#be').textContent=x.message}};
+tb.onclick=async e=>{const b=e.target.closest('button');if(!b)return;const r=list.find(x=>x.id==b.dataset.id);if(!r)return;
+ if(b.dataset.a=='e'){eid=r.id;sf.student_id.value=r.sid;sf.subject_id.value=r.subid;sf.date.value=r.date;sf.status.value=r.status;$('#fe').textContent='';$('#mt').textContent='Edit attendance';openModal('m')}
+ if(b.dataset.a=='d'&&await confirmDialog(`Delete ${r.name}'s ${r.subject} record for ${r.date}?`)){try{await api('/api/attendance/'+r.id,{method:'DELETE'});toast('Record deleted');load()}catch(x){toast(x.message,1)}}};
+sf.onsubmit=async e=>{e.preventDefault();const d=Object.fromEntries(new FormData(sf));
+ if(!d.student_id||!d.subject_id||!d.date||!d.status)return $('#fe').textContent='Student, subject, date and status are all required';
+ try{await api(eid?'/api/attendance/'+eid:'/api/attendance',{method:eid?'PUT':'POST',body:d});closeModal('m');toast('Attendance saved');load()}catch(x){$('#fe').textContent=x.message}};
+fillSelects().then(load);
+</script>{% endblock %}

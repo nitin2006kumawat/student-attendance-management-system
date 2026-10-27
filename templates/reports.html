@@ -1,0 +1,15 @@
+{% extends "base.html" %}{% block content %}
+<div class="print-h"><h1>Student Attendance Report</h1><p id="stamp"></p></div>
+<h1 class="noprint">Reports</h1><p class="sub noprint">Generate summaries, export CSV or print a clean report.</p><div id="rule" class="rule"></div>
+<div class="bar" id="f"><select name="student" aria-label="Filter by student" data-src="/api/students" data-label="name" data-ph="All students"></select><select name="subject" aria-label="Filter by subject" data-src="/api/subjects" data-label="name" data-ph="All subjects"></select>
+<select name="course" aria-label="Filter by course" data-src="/api/meta" data-key="courses" data-ph="All courses"></select><select name="section" aria-label="Filter by section" data-src="/api/meta" data-key="sections" data-ph="All sections"></select><select name="status" aria-label="Filter by status"><option value="">All statuses</option><option>Present</option><option>Absent</option><option>Leave</option></select><input type="date" name="start" aria-label="Start date"><input type="date" name="end" aria-label="End date"><span class="sp"></span>
+<a class="btn ghost" id="csv" href="/export/attendance.csv">⬇ Export CSV</a><button class="btn" onclick="window.print()">🖨 Print report</button></div>
+<div class="card tw" style="margin-bottom:18px"><h2>Student-wise summary</h2><table><thead><tr><th>Student</th><th>ID</th><th>Present</th><th>Absent</th><th>Leave</th><th>Attendance</th><th>Status</th></tr></thead><tbody id="sum"></tbody></table></div>
+<div class="card tw"><h2>Attendance records</h2><table><thead><tr><th>Date</th><th>Student</th><th>Subject</th><th>Status</th></tr></thead><tbody id="rows"></tbody></table></div>
+{% endblock %}{% block scripts %}<script>
+async function load(){const q=filters('#f');$('#csv').href='/export/attendance.csv?'+q;$('#stamp').textContent='Generated '+new Date().toLocaleString();
+loadingRows($('#sum'),7);try{const[d,r]=await Promise.all([api('/api/analytics?'+q),api('/api/attendance?'+q)]);
+$('#sum').innerHTML=d.students.map(s=>`<tr><td>${esc(s.name)}</td><td>${esc(s.student_id)}</td><td>${s.Present}</td><td>${s.Absent}</td><td>${s.Leave}</td><td>${pct(s.percentage)}</td><td>${s.percentage<d.threshold?'<span class="badge low">Shortage</span>':'<span class="badge ok">OK</span>'}</td></tr>`).join('')||emptyRow(7,'No data for these filters');
+$('#rows').innerHTML=r.map(x=>`<tr><td>${x.date}</td><td>${esc(x.name)}</td><td>${esc(x.subject)}</td><td>${badge(x.status)}</td></tr>`).join('')||emptyRow(4,'No records')}catch(e){toast(e.message,1)}}
+const refresh=debounce(load);$('#f').addEventListener('input',refresh);$('#f').addEventListener('change',refresh);fillSelects().then(load);
+</script>{% endblock %}

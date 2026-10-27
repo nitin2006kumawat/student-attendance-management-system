@@ -1,0 +1,20 @@
+{% extends "base.html" %}{% block content %}
+<h1>Dashboard</h1><p class="sub">Live overview of attendance across all students and subjects.</p><div id="rule" class="rule"></div>
+<div class="bar" id="f"><select name="student" aria-label="Filter by student" data-src="/api/students" data-label="name" data-ph="All students"></select>
+<select name="subject" aria-label="Filter by subject" data-src="/api/subjects" data-label="name" data-ph="All subjects"></select>
+<select name="course" aria-label="Filter by course" data-src="/api/meta" data-key="courses" data-ph="All courses"></select>
+<select name="section" aria-label="Filter by section" data-src="/api/meta" data-key="sections" data-ph="All sections"></select>
+<input type="date" name="start" title="From" aria-label="Start date"><input type="date" name="end" title="To" aria-label="End date"></div>
+<div class="grid g4">
+{% for id,l,i in [('sStudents','Total students','users'),('sRecords','Attendance records','check'),('sOverall','Overall attendance','chart'),('sBelow','Below threshold','bell')] %}
+<div class="card stat"><div class="ic">{{ ico(i) }}</div><div><b id="{{id}}">–</b><span>{{l}}</span></div></div>{% endfor %}</div>
+<div id="none" class="rule" hidden>No data yet. Go to <a href="/settings"><u>Settings</u></a> and click “Load demo data”.</div>
+<div class="grid g3"><div class="card"><h2>Student-wise attendance</h2><div class="ch"><canvas id="cStudents"></canvas></div></div>
+<div class="card"><h2>Recent activity</h2><div class="feed" id="recent"><div class="sk"></div></div></div></div>
+<div class="grid g2"><div class="card"><h2>Subject-wise attendance</h2><div class="ch"><canvas id="cSubjects"></canvas></div></div>
+<div class="card"><h2>Attendance trend</h2><div class="ch"><canvas id="cTrend"></canvas></div></div></div>
+{% endblock %}{% block scripts %}<script>
+async function load(){try{const d=await api('/api/analytics?'+filters('#f'));fillStats(d);drawCharts(d);$('#none').hidden=d.records>0;
+$('#recent').innerHTML=d.recent.map(r=>`<div><span>${esc(r.name)}<small>${esc(r.subject)} · ${r.date}</small></span>${badge(r.status)}</div>`).join('')||'<p class="empty">No recent activity</p>'}catch(e){toast(e.message,1)}}
+const f=$('#f'),refresh=debounce(load);f.addEventListener('input',refresh);f.addEventListener('change',refresh);fillSelects().then(load);
+</script>{% endblock %}

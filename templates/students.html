@@ -1,0 +1,30 @@
+{% extends "base.html" %}{% block content %}
+<h1>Student Management</h1><p class="sub">Add, edit and review student records.</p>
+<div class="bar" id="f"><input name="q" placeholder="Search name, ID, roll no…" aria-label="Search name, student ID, or roll number" value="{{ request.args.get('q','') }}">
+<select name="course" aria-label="Filter by course" data-src="/api/meta" data-key="courses" data-ph="All courses"></select><select name="section" aria-label="Filter by section" data-src="/api/meta" data-key="sections" data-ph="All sections"></select>
+<span class="sp"></span><button class="btn" id="add">＋ Add student</button></div>
+<div class="card tw"><table><thead><tr><th>Student ID</th><th>Roll</th><th>Name</th><th>Course</th><th>Section</th><th>Semester</th><th>Email</th><th></th></tr></thead><tbody id="rows"></tbody></table></div>
+<div class="ov" id="m"><form class="card md" id="sf" novalidate><h2 id="mt"></h2>
+{% for n,l in [('student_id','Student ID'),('roll_no','Roll number'),('name','Full name'),('course','Course'),('section','Section'),('semester','Semester')] %}<label for="student-{{n}}">{{l}}</label><input id="student-{{n}}" name="{{n}}" required style="width:100%">{% endfor %}
+<label for="student-email">Email (optional)</label><input id="student-email" name="email" type="email" style="width:100%">
+<div class="err" id="fe"></div><div class="acts"><button type="button" class="btn ghost" data-close="m">Cancel</button><button class="btn">Save</button></div></form></div>
+<div class="ov" id="v"><div class="card md"><h2 id="vt"></h2><div id="vb"></div><div class="acts"><button class="btn ghost" data-close="v">Close</button></div></div></div>
+{% endblock %}{% block scripts %}<script>
+let list=[],eid=null;const tb=$('#rows'),sf=$('#sf');
+async function load(){loadingRows(tb,8);try{list=await api('/api/students?'+filters('#f'));
+tb.innerHTML=list.map(s=>`<tr><td>${esc(s.student_id)}</td><td>${esc(s.roll_no)}</td><td>${esc(s.name)}</td><td>${esc(s.course)}</td><td>${esc(s.section)}</td><td>${esc(s.semester)}</td><td>${esc(s.email)}</td>
+<td><button class="btn ghost sm" data-a="v" data-id="${s.id}">View</button><button class="btn ghost sm" data-a="e" data-id="${s.id}">Edit</button><button class="btn red sm" data-a="d" data-id="${s.id}">Delete</button></td></tr>`).join('')||emptyRow(8,'No students found')}catch(e){tb.innerHTML=emptyRow(8,esc(e.message))}}
+const refresh=debounce(load);$('#f').addEventListener('input',refresh);$('#f').addEventListener('change',refresh);
+$('#add').onclick=()=>{eid=null;sf.reset();$('#fe').textContent='';$('#mt').textContent='Add student';openModal('m')};
+tb.onclick=async e=>{const b=e.target.closest('button');if(!b)return;const s=list.find(x=>x.id==b.dataset.id);if(!s)return;
+ if(b.dataset.a=='e'){eid=s.id;$('#mt').textContent='Edit student';$('#fe').textContent='';for(const k in s)if(sf[k])sf[k].value=s[k];openModal('m')}
+ if(b.dataset.a=='d'&&await confirmDialog(`Delete ${s.name}? Their attendance records will also be deleted.`)){try{await api('/api/students/'+s.id,{method:'DELETE'});toast('Student deleted');load();fillSelects()}catch(x){toast(x.message,1)}}
+ if(b.dataset.a=='v'){try{const d=await api('/api/students/'+s.id);$('#vt').textContent=s.name;
+  $('#vb').innerHTML=`<p class="sub">${esc(s.student_id)} · Roll ${esc(s.roll_no)} · ${esc(s.course)} · Section ${esc(s.section)} · Semester ${esc(s.semester)}<br>${esc(s.email||'No email')}<br>Overall attendance: ${pct(d.overall)}</p><table>${d.subjects.map(x=>`<tr><td>${esc(x.subject)}</td><td>${x.Present}P / ${x.Absent}A / ${x.Leave}L</td><td>${pct(x.percentage)}</td></tr>`).join('')||emptyRow(3,'No attendance yet')}</table>`;openModal('v')
+ }catch(x){toast(x.message,1)}}
+};
+sf.onsubmit=async e=>{e.preventDefault();const d=Object.fromEntries(new FormData(sf));
+ if(Object.entries(d).some(([k,v])=>k!=='email'&&!v.trim()))return $('#fe').textContent='All fields except email are required';
+ try{await api(eid?'/api/students/'+eid:'/api/students',{method:eid?'PUT':'POST',body:d});closeModal('m');toast('Student saved');load();fillSelects()}catch(x){$('#fe').textContent=x.message}};
+fillSelects().then(load);
+</script>{% endblock %}
